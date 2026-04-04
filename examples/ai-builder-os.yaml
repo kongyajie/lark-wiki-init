@@ -1,0 +1,41 @@
+# AI Native Builder OS 知识库结构
+# 实际使用的完整配置示例
+space: "AI_Native_Builder_OS"
+root:
+  title: "AI Native Builder OS"
+  content: "# AI Native Builder OS\n\n构建 AI 原生开发者的知识体系与工作流。"
+  children:
+    - title: "认知层"
+      content: "# 认知层\n\n理解 AI 时代的底层逻辑。"
+      children:
+        - title: "AI 时代的思维模型"
+          content: "# AI 时代的思维模型\n\n## 从工具思维到协作思维\n\n待填写\n\n## Prompt 即编程\n\n待填写"
+        - title: "技术趋势与判断"
+          content: "# 技术趋势与判断\n\n## LLM 能力边界\n\n待填写\n\n## Agent 发展方向\n\n待填写"
+    - title: "技能层"
+      content: "# 技能层\n\n掌握 AI 原生开发的核心技能。"
+      children:
+        - title: "Prompt Engineering"
+          content: "# Prompt Engineering\n\n## 基础技巧\n\n待填写\n\n## 高级模式\n\n待填写\n\n## 实战案例\n\n待填写"
+        - title: "AI 编程工具链"
+          content: "# AI 编程工具链\n\n## Claude Code\n\n待填写\n\n## Cursor\n\n待填写\n\n## GitHub Copilot\n\n待填写"
+        - title: "Agent 开发"
+          content: "# Agent 开发\n\n## MCP 协议\n\n待填写\n\n## Tool Use\n\n待填写\n\n## 多 Agent 协作\n\n待填写"
+    - title: "实践层"
+      content: "# 实践层\n\n通过项目实战积累经验。"
+      children:
+        - title: "项目实战记录"
+          content: "# 项目实战记录\n\n记录每个 AI 辅助开发的项目。"
+        - title: "踩坑与复盘"
+          content: "# 踩坑与复盘\n\n记录踩过的坑和解决方案。"
+        - title: "最佳实践"
+          content: "# 最佳实践\n\n沉淀可复用的模式和方法。"
+    - title: "输出层"
+      content: "# 输出层\n\n将知识转化为影响力。"
+      children:
+        - title: "技术文章"
+          content: "# 技术文章\n\n发布的技术博客和文章。"
+        - title: "开源项目"
+          content: "# 开源项目\n\n维护的开源项目列表。"
+        - title: "分享演讲"
+          content: "# 分享演讲\n\n技术分享和演讲记录。"

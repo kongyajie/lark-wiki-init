@@ -1,0 +1,32 @@
+[
+  {
+    "name": "trigger_with_chinese",
+    "input": "帮我创建飞书知识库目录结构",
+    "expected_skill": "lark-wiki-init",
+    "expected_behavior": "应触发 lark-wiki-init skill，引导用户提供 YAML 配置或描述目录结构"
+  },
+  {
+    "name": "trigger_with_english",
+    "input": "Initialize a Lark Wiki structure",
+    "expected_skill": "lark-wiki-init",
+    "expected_behavior": "应触发 lark-wiki-init skill"
+  },
+  {
+    "name": "trigger_with_yaml",
+    "input": "用这个 YAML 配置创建飞书知识库：space: test\nroot:\n  title: 测试\n  content: '# 测试'",
+    "expected_skill": "lark-wiki-init",
+    "expected_behavior": "应识别 YAML 配置，先 dry-run 预览，确认后执行创建"
+  },
+  {
+    "name": "dry_run_first",
+    "input": "批量初始化飞书知识库",
+    "expected_skill": "lark-wiki-init",
+    "expected_behavior": "执行创建前应先用 --dry-run 预览结构，让用户确认"
+  },
+  {
+    "name": "no_trigger_unrelated",
+    "input": "帮我写一个 React 组件",
+    "expected_skill": null,
+    "expected_behavior": "不应触发 lark-wiki-init skill"
+  }
+]

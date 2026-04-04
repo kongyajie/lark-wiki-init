@@ -1,0 +1,10 @@
+# 最小示例：创建一个简单的知识库结构
+space: "测试知识库"
+root:
+  title: "测试知识库"
+  content: "# 测试知识库\n\n这是一个测试知识库。"
+  children:
+    - title: "文档一"
+      content: "# 文档一\n\n这是第一篇文档。"
+    - title: "文档二"
+      content: "# 文档二\n\n这是第二篇文档。"
