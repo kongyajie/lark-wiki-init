@@ -3,41 +3,61 @@ theme: smartblue
 highlight: a11y-dark
 ---
 
-# 用 AI Agent + lark-cli 一键生成飞书知识库目录结构
+# 用 AI Agent + lark-cli 一键生成飞书知识库目录结构（附开源工具）
 
-## 痛点：手动创建 50+ 文档有多痛？
+> 手动在飞书知识库里创建 16 个文档节点，我花了 15 分钟。用 AI Agent 自动化之后，20 秒。
 
-最近在搭建一个「AI Native Builder OS」知识库，规划了认知层、技能层、实践层、输出层四大板块，加上子分类，总共 16 个文档节点。
+## 起因
 
-打开飞书知识库，点击「新建文档」→ 输入标题 → 写入模板内容 → 拖到正确的层级位置……
+最近在搭建个人知识体系，想在飞书知识库里建一个「AI Native Builder OS」——按认知层、技能层、实践层、输出层四个维度组织，每个维度下面还有子分类，总共 16 个文档节点。
+
+打开飞书知识库，开始操作：
+
+1. 点「新建文档」
+2. 输入标题
+3. 写入模板内容
+4. 拖到正确的层级位置
 
 重复 16 次。
 
-这还只是初始结构。如果后续要建一个更大的知识库，比如团队的技术文档体系（50+ 节点），手动操作简直是噩梦。
+到第 8 个的时候我就崩溃了——这也太机械了。而且一旦结构规划有调整，又得手动改一遍。
 
-**能不能一句话搞定？**
+作为一个天天用 AI 写代码的人，我决定把这件事自动化。
 
-## 方案：Claude Code + lark-cli + 自定义 Skill
+## 思路
 
-### 整体思路
+我日常用 Claude Code 做开发，它支持自定义 Skill（可以理解为给 AI 加装的"技能包"）。同时飞书有个命令行工具 `lark-cli`，可以通过终端操作文档和知识库。
+
+把两者结合起来：
 
 ```
-用户描述目录结构 → AI 生成 YAML 配置 → Python 脚本调用 lark-cli → 批量创建知识库节点
+描述目录结构 → YAML 配置 → Python 脚本递归调用 lark-cli → 批量创建节点
 ```
 
-最终效果：在 Claude Code 中说一句「帮我创建飞书知识库」，AI 就会引导你完成整个流程。
+封装成 Claude Code Skill 之后，以后只需要说一句「帮我创建飞书知识库」，AI 就能引导完成整个流程。
 
-### 技术栈
+## 什么是 Claude Code Skill？
 
-- **Claude Code**：Anthropic 的 CLI AI 助手，支持自定义 Skill 扩展
-- **lark-cli**：飞书命令行工具，可以通过命令行操作飞书文档、知识库等
-- **Python**：胶水脚本，解析 YAML 配置并递归调用 lark-cli
+简单说，Skill 是 Claude Code 的扩展能力。你写一个 `SKILL.md` 文件，定义触发条件和执行指令，AI 就能在合适的时机自动调用。
 
-## 实现过程
+比如我定义了：
 
-### Step 1：定义目录结构（YAML 配置）
+```yaml
+---
+name: lark-wiki-init
+description: |
+  批量创建飞书知识库目录结构。当用户想要在飞书知识库中
+  批量创建文档目录树、初始化知识库结构时触发。
+---
+```
 
-用 YAML 描述知识库的树形结构，直观且易编辑：
+之后在 Claude Code 里说「帮我初始化飞书知识库」，它就知道该调用这个 Skill，引导我提供配置、预览结构、执行创建。
+
+## 实现
+
+### 1. 用 YAML 描述目录树
+
+YAML 天然适合描述树形结构，比 JSON 可读性好得多：
 
 ```yaml
 space: "AI_Native_Builder_OS"
@@ -53,17 +73,27 @@ root:
         - title: "技术趋势与判断"
           content: "# 技术趋势与判断\n\n## LLM 能力边界\n\n待填写"
     - title: "技能层"
-      content: "# 技能层\n\n掌握 AI 原生开发的核心技能。"
       children:
         - title: "Prompt Engineering"
         - title: "AI 编程工具链"
         - title: "Agent 开发"
-    # ... 更多节点
+    - title: "实践层"
+      children:
+        - title: "项目实战记录"
+        - title: "踩坑与复盘"
+        - title: "最佳实践"
+    - title: "输出层"
+      children:
+        - title: "技术文章"
+        - title: "开源项目"
+        - title: "分享演讲"
 ```
 
-### Step 2：核心脚本（递归创建）
+每个节点有 `title`（标题）、`content`（Markdown 内容，可选）、`children`（子节点，可选）。不写 content 的话，脚本会自动用 `# {title}` 作为默认内容。
 
-核心逻辑很简单——解析 YAML，递归遍历树，每个节点调用 `lark-cli docs +create`：
+### 2. 核心脚本：递归创建
+
+核心逻辑就一个递归函数——遍历树，每个节点调用 `lark-cli docs +create`，拿到返回的 `wiki_node_token` 后传给子节点：
 
 ```python
 def create_tree(space, node, parent_node=None, depth=0, delay=1.0):
@@ -73,18 +103,16 @@ def create_tree(space, node, parent_node=None, depth=0, delay=1.0):
     # 调用 lark-cli 创建节点
     result = create_node(space, title, content, parent_node)
 
-    # 获取返回的 wiki_node_token，用于挂载子节点
+    # 拿到 wiki_node_token，这是父子关系的纽带
     token = result.get("wiki_node_token") if result else None
 
     # 递归创建子节点
     for child in node.get("children", []):
-        time.sleep(delay)  # 避免频率限制
-        create_tree(space, child, parent_node=token, depth=depth+1, delay=delay)
+        time.sleep(delay)  # 避免触发频率限制
+        create_tree(space, child, parent_node=token, depth=depth+1)
 ```
 
-关键点：`lark-cli docs +create` 返回的 `wiki_node_token` 是父子关系的纽带，每次创建子节点时传入父节点的 token。
-
-### Step 3：用 subprocess 调用 lark-cli（避免 shell 转义坑）
+调用 lark-cli 的部分，用 `subprocess` 直接传参（原因后面踩坑部分会讲）：
 
 ```python
 def create_node(space, title, content, parent_node=None):
@@ -92,7 +120,7 @@ def create_node(space, title, content, parent_node=None):
         "lark-cli", "docs", "+create",
         "--space", space,
         "--title", title,
-        "--content", content,  # Python 字符串中 \n 是真正的换行
+        "--content", content,
     ]
     if parent_node:
         cmd.extend(["--parent-node", parent_node])
@@ -101,32 +129,13 @@ def create_node(space, title, content, parent_node=None):
     return json.loads(result.stdout)
 ```
 
-**为什么用 `subprocess` 而不是直接拼 shell 命令？** 这是我踩的第一个大坑，后面详细说。
+### 3. dry-run 预览
 
-### Step 4：封装为 Claude Code Skill
+因为飞书知识库节点创建后没法批量删除（对，这也是个坑），所以加了 `--dry-run` 模式，先看看要创建什么：
 
-创建 `SKILL.md`，定义触发条件和工作流程：
+```bash
+$ python3 scripts/wiki_init.py structure.yaml --dry-run
 
-```yaml
----
-name: lark-wiki-init
-description: |
-  批量创建飞书知识库目录结构。当用户想要在飞书知识库中
-  批量创建文档目录树、初始化知识库结构时触发。
----
-```
-
-安装后，在 Claude Code 中说「帮我创建飞书知识库」就能触发，AI 会：
-1. 引导你描述目录结构
-2. 生成 YAML 配置
-3. 先 `--dry-run` 预览
-4. 确认后执行创建
-
-## 效果展示
-
-### dry-run 预览
-
-```
 知识库空间: AI_Native_Builder_OS
 
 === 预览模式 ===
@@ -151,114 +160,159 @@ description: |
 共 16 个节点将被创建
 ```
 
-确认无误，去掉 `--dry-run` 执行，16 个节点在 20 秒内全部创建完成。
+确认没问题，去掉 `--dry-run` 执行。16 个节点，大约 20 秒全部创建完成。
 
-## 踩坑记录（重点）
+## 踩坑实录
 
-### 坑 1：Shell `\n` 转义问题
+这个项目代码量不大，但踩的坑不少。每个都能让你卡半天，记录下来希望帮后来人避坑。
 
-**现象**：文档内容中出现字面的 `\n` 而不是换行。
+### 坑 1：Shell `\n` 转义——最隐蔽的 Bug
 
-**原因**：在 shell 中直接传递含 `\n` 的字符串时，不同 shell 对转义的处理不一致。比如：
+**现象**：创建出来的文档里，内容出现了字面的 `\n`，而不是换行。
 
-```bash
-# 这样写，\n 可能不会被解析为换行
-lark-cli docs +create --content "# 标题\n\n内容"
-```
-
-更糟糕的是，如果用 `$()` 嵌套命令，转义会更加混乱：
+**排查过程**：一开始我让 Claude Code 直接在 shell 里拼命令：
 
 ```bash
-# 千万别这样写
-lark-cli docs +create --content "$(echo '# 标题\n\n内容')"
+lark-cli docs +create --content "# 标题\n\n正文内容"
 ```
 
-**解决方案**：用 Python `subprocess` 直接传参。Python 字符串中的 `\n` 会被正确处理为换行符，传给子进程时不经过 shell 解析：
+看起来没问题对吧？但 shell 双引号里的 `\n` **不会**被解析为换行符——它就是字面的反斜杠加 n。
+
+更坑的是，如果你用 `$()` 嵌套：
+
+```bash
+lark-cli docs +create --content "$(echo -e '# 标题\n\n内容')"
+```
+
+不同 shell（bash/zsh）、不同系统对 `echo -e` 的行为还不一样，有的支持有的不支持。
+
+**解决方案**：别跟 shell 转义较劲了。用 Python `subprocess` 直接传参，Python 字符串里的 `\n` 就是真正的换行符，传给子进程时不经过 shell：
 
 ```python
 subprocess.run([
     "lark-cli", "docs", "+create",
-    "--content", "# 标题\n\n内容"  # 这里的 \n 是真正的换行
+    "--content", "# 标题\n\n内容"  # Python 里 \n 就是换行
 ], capture_output=True, text=True)
 ```
 
-### 坑 2：知识库节点没有公开的删除 API
+**教训**：涉及特殊字符传参时，能不过 shell 就别过 shell。
 
-**现象**：创建了错误的结构，想删掉重来，发现 lark-cli 没有删除命令。
+### 坑 2：知识库节点不能批量删除
 
-**真相**：飞书知识库目前没有公开的批量删除 API。要删除节点，只能：
-- 在飞书客户端手动一个个删除
-- 或者把节点移到回收站
+**现象**：第一次创建的结构有问题，想删掉重来，发现 lark-cli 没有删除命令。去翻飞书开放平台文档，也没找到公开的删除 API。
 
-**教训**：创建前一定要用 `--dry-run` 预览确认。我因为这个坑，手动删了两次错误创建的节点树……
+**真相**：飞书知识库节点目前只能在客户端手动删除，或者移到回收站。没有 API 支持批量删除。
 
-### 坑 3：API 频率限制
+我因为这个坑，手动在飞书客户端里一个个删了两次错误创建的节点树。每次十几个节点，点到手酸。
 
-**现象**：批量创建时，部分请求返回 429 错误。
+**教训**：这就是为什么 `--dry-run` 是必须的。创建前一定要预览确认，因为撤销的成本很高。
 
-**解决方案**：每次创建间隔 1 秒。脚本默认 `--delay 1.0`，如果还被限流可以调大：
+### 坑 3：API 频率限制（429）
+
+**现象**：批量创建到一半，部分请求开始报错。
+
+**原因**：飞书 API 有调用频率限制，连续快速请求会触发 429 Too Many Requests。
+
+**解决方案**：每次创建之间加 1 秒延迟。脚本默认 `--delay 1.0`，如果节点特别多可以调大：
 
 ```bash
 python3 wiki_init.py structure.yaml --delay 2
 ```
 
+16 个节点加上延迟大概 20 秒，完全可以接受。
+
 ### 坑 4：权限配置容易遗漏
 
-**现象**：调用 API 返回权限不足。
+**现象**：`lark-cli` 登录成功了，但创建节点时报权限不足。
 
-**解决方案**：在飞书开放平台为应用添加以下权限，并重新发布版本：
+**原因**：飞书应用需要单独配置 API 权限，光登录不够。
+
+**需要的权限**：
 - `wiki:node:create` — 创建知识库节点
 - `docx:document:create` — 创建文档
 
-注意：添加权限后需要重新发布应用版本才能生效。
+去飞书开放平台 → 应用管理 → 权限管理里添加，添加后**需要重新发布应用版本**才能生效。这一步很容易忘。
 
-## 开源地址
+## 使用方式
 
-项目已开源，包含完整的 Skill 定义、Python 脚本和示例配置：
+### 方式一：Claude Code Skill（推荐）
 
-**GitHub**: [kongyajie/lark-wiki-init](https://github.com/kongyajie/lark-wiki-init)
-
-### 快速开始
+如果你也在用 Claude Code，一行命令安装：
 
 ```bash
-# 作为 Claude Code Skill 安装
 npx skills add kongyajie/lark-wiki-init -g -y
-
-# 或者直接使用脚本
-git clone https://github.com/kongyajie/lark-wiki-init.git
-cd lark-wiki-init
-python3 scripts/wiki_init.py examples/minimal.yaml --dry-run
 ```
 
-### 项目结构
+然后在 Claude Code 里说「帮我创建飞书知识库目录结构」，AI 会：
+
+1. 引导你描述想要的目录结构
+2. 自动生成 YAML 配置文件
+3. 先 `--dry-run` 预览让你确认
+4. 确认后执行批量创建
+
+全程对话式操作，不需要手写 YAML。
+
+### 方式二：独立脚本
+
+不用 Claude Code 也能用，直接跑 Python 脚本：
+
+```bash
+# 克隆项目
+git clone https://github.com/kongyajie/lark-wiki-init.git
+cd lark-wiki-init
+
+# 安装依赖
+pip install pyyaml
+npm install -g lark-cli
+lark-cli auth login
+
+# 预览
+python3 scripts/wiki_init.py examples/minimal.yaml --dry-run
+
+# 执行创建
+python3 scripts/wiki_init.py examples/minimal.yaml
+
+# 挂到已有节点下
+python3 scripts/wiki_init.py structure.yaml --parent-node wikcnXXXXXX
+```
+
+## 项目结构
 
 ```
 lark-wiki-init/
-├── SKILL.md              # Skill 定义
-├── README.md             # 使用说明
+├── SKILL.md                   # Claude Code Skill 定义
+├── README.md                  # 使用说明
 ├── scripts/
-│   └── wiki_init.py      # 核心脚本
+│   └── wiki_init.py           # 核心脚本
 ├── references/
-│   └── lark-cli-wiki.md  # lark-cli 命令参考
+│   └── lark-cli-wiki.md       # lark-cli 命令参考
 ├── examples/
-│   ├── ai-builder-os.yaml    # 完整示例（16 节点）
+│   ├── ai-builder-os.yaml     # 完整示例（16 节点）
 │   └── minimal.yaml           # 最小示例（3 节点）
 └── evals/
-    └── evals.json        # 测试用例
+    └── evals.json             # Skill 触发测试用例
 ```
 
-## 总结
+## 效率对比
 
-| 方式 | 创建 16 个节点耗时 | 体验 |
-|------|-------------------|------|
-| 手动操作 | ~15 分钟 | 枯燥、易出错 |
-| 脚本批量创建 | ~20 秒 | 一次编写，反复使用 |
-| Claude Code Skill | ~30 秒 | 一句话搞定，AI 帮你生成配置 |
+| 方式 | 创建 16 个节点 | 可复用性 |
+|------|---------------|---------|
+| 飞书客户端手动操作 | ~15 分钟 | 每次都要重复 |
+| Python 脚本 + YAML | ~20 秒 | 改配置即可复用 |
+| Claude Code Skill | ~30 秒 | 对话式操作，零配置门槛 |
 
-这个项目本身不复杂，但踩坑的过程挺有价值。Shell 转义、API 限制、权限配置这些问题，每个都能让你卡半天。希望这篇文章和开源项目能帮你少走弯路。
+## 写在最后
 
-AI 时代的开发方式正在变化——不是 AI 替你写代码，而是你和 AI 协作，把重复劳动自动化，把时间花在更有价值的事情上。
+这个项目本身代码量很小，核心逻辑就是一个递归函数。但从想法到落地的过程中，shell 转义、API 限制、权限配置、不可逆操作这些坑，每个都实实在在地卡了我一阵。
+
+把它做成 Claude Code Skill 开源出来，一方面是方便自己以后复用，另一方面也希望帮到有同样需求的人。
+
+更大的感受是：AI 时代的开发方式确实在变。以前遇到这种批量操作，可能写个脚本就完事了。现在多了一层——把脚本封装成 AI 能调用的 Skill，下次连脚本都不用自己跑，跟 AI 说一句话就行。
+
+**开源地址**：[github.com/kongyajie/lark-wiki-init](https://github.com/kongyajie/lark-wiki-init)
+
+如果对你有帮助，欢迎 Star。有问题或建议，GitHub Issue 见。
 
 ---
 
-> 如果觉得有用，欢迎 Star 和分享。有问题或建议，欢迎在 GitHub 提 Issue。
+*本文涉及的工具：[Claude Code](https://docs.anthropic.com/en/docs/claude-code)、[lark-cli](https://github.com/nicepkg/lark-cli)*
