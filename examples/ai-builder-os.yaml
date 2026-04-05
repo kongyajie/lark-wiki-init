@@ -1,6 +1,7 @@
 # AI Native Builder OS 知识库结构
 # 实际使用的完整配置示例
-space: "AI_Native_Builder_OS"
+# space 填知识库空间 ID（数字），可通过 lark-cli wiki spaces list 查看
+space: "7620663498296642741"
 root:
   title: "AI Native Builder OS"
   content: "# AI Native Builder OS\n\n构建 AI 原生开发者的知识体系与工作流。"

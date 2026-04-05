@@ -1,5 +1,7 @@
 # 最小示例：创建一个简单的知识库结构
-space: "测试知识库"
+# space 填知识库空间 ID（数字），可通过 lark-cli wiki spaces list 查看
+# 也可以填 my_library 表示个人知识库
+space: "7620663498296642741"
 root:
   title: "测试知识库"
   content: "# 测试知识库\n\n这是一个测试知识库。"

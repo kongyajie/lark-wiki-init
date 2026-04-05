@@ -27,7 +27,7 @@ description: |
 如果用户没有提供 YAML 配置，引导用户描述目录结构，然后生成 YAML 配置文件。YAML 格式如下：
 
 ```yaml
-space: "知识库名称"    # 知识库空间名（需已存在）
+space: "7620663498296642741"    # 知识库空间 ID（数字），通过 lark-cli wiki spaces list 查看，或填 my_library 表示个人知识库
 root:
   title: "根节点标题"
   content: "# 根节点\n\n文档内容（Markdown 格式）"

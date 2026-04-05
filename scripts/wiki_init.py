@@ -34,21 +34,24 @@ def create_node(
     """
     调用 lark-cli 创建一个知识库节点。
 
-    返回 lark-cli 的 JSON 输出（包含 wiki_node_token 等），失败返回 None。
+    - 根节点使用 --wiki-space 创建
+    - 子节点使用 --wiki-node 创建（与 --wiki-space 互斥）
+
+    返回 lark-cli 的 JSON 输出，失败返回 None。
     """
     cmd = [
         "lark-cli",
         "docs",
         "+create",
-        "--space",
-        space,
         "--title",
         title,
-        "--content",
+        "--markdown",
         content,
     ]
     if parent_node:
-        cmd.extend(["--parent-node", parent_node])
+        cmd.extend(["--wiki-node", parent_node])
+    else:
+        cmd.extend(["--wiki-space", space])
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -66,12 +69,27 @@ def create_node(
 
     # 尝试解析 JSON 输出
     try:
-        return json.loads(result.stdout)
+        output = json.loads(result.stdout)
     except json.JSONDecodeError:
-        # 有些版本的 lark-cli 输出不是纯 JSON，尝试提取
         print(f"警告: 无法解析 lark-cli 输出，原始内容:")
         print(f"  stdout: {result.stdout.strip()}")
         return {"raw_output": result.stdout.strip()}
+
+    # lark-cli 返回 {"ok": true/false, "data": {...}} 格式
+    if not output.get("ok"):
+        error = output.get("error", {})
+        print(f"失败: 创建节点 '{title}'")
+        print(f"  错误: {error.get('message', '未知错误')}")
+        return None
+
+    data = output.get("data", {})
+
+    # 从 doc_url 中提取 wiki_node_token（URL 最后一段路径）
+    doc_url = data.get("doc_url", "")
+    if doc_url:
+        data["wiki_node_token"] = doc_url.rstrip("/").split("/")[-1]
+
+    return data
 
 
 def print_tree(node: dict, prefix: str = "", is_last: bool = True) -> int:

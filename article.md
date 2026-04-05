@@ -78,7 +78,7 @@ description: |
 YAML 天然适合描述树形结构，比 JSON 可读性好得多：
 
 ```yaml
-space: "AI_Native_Builder_OS"
+space: "7620663498296642741"  # 知识库空间 ID，通过 lark-cli wiki spaces list 查看
 root:
   title: "AI Native Builder OS"
   content: "# AI Native Builder OS\n\n构建 AI 原生开发者的知识体系与工作流。"
@@ -136,15 +136,24 @@ def create_tree(space, node, parent_node=None, depth=0, delay=1.0):
 def create_node(space, title, content, parent_node=None):
     cmd = [
         "lark-cli", "docs", "+create",
-        "--space", space,
         "--title", title,
-        "--content", content,
+        "--markdown", content,
     ]
+    # 根节点用 --wiki-space，子节点用 --wiki-node（两者互斥）
     if parent_node:
-        cmd.extend(["--parent-node", parent_node])
+        cmd.extend(["--wiki-node", parent_node])
+    else:
+        cmd.extend(["--wiki-space", space])
 
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-    return json.loads(result.stdout)
+    output = json.loads(result.stdout)
+    data = output.get("data", {})
+
+    # 从 doc_url 中提取 wiki_node_token（URL 最后一段路径）
+    doc_url = data.get("doc_url", "")
+    if doc_url:
+        data["wiki_node_token"] = doc_url.rstrip("/").split("/")[-1]
+    return data
 ```
 
 ### 3. dry-run 预览
@@ -154,7 +163,7 @@ def create_node(space, title, content, parent_node=None):
 ```bash
 $ python3 scripts/wiki_init.py structure.yaml --dry-run
 
-知识库空间: AI_Native_Builder_OS
+知识库空间: 7620663498296642741
 
 === 预览模式 ===
 
@@ -191,7 +200,7 @@ $ python3 scripts/wiki_init.py structure.yaml --dry-run
 **排查过程**：一开始我让 Claude Code 直接在 shell 里拼命令：
 
 ```bash
-lark-cli docs +create --content "# 标题\n\n正文内容"
+lark-cli docs +create --markdown "# 标题\n\n正文内容"
 ```
 
 看起来没问题对吧？但 shell 双引号里的 `\n` **不会**被解析为换行符——它就是字面的反斜杠加 n。
@@ -199,7 +208,7 @@ lark-cli docs +create --content "# 标题\n\n正文内容"
 更坑的是，如果你用 `$()` 嵌套：
 
 ```bash
-lark-cli docs +create --content "$(echo -e '# 标题\n\n内容')"
+lark-cli docs +create --markdown "$(echo -e '# 标题\n\n内容')"
 ```
 
 不同 shell（bash/zsh）、不同系统对 `echo -e` 的行为还不一样，有的支持有的不支持。
@@ -209,7 +218,7 @@ lark-cli docs +create --content "$(echo -e '# 标题\n\n内容')"
 ```python
 subprocess.run([
     "lark-cli", "docs", "+create",
-    "--content", "# 标题\n\n内容"  # Python 里 \n 就是换行
+    "--markdown", "# 标题\n\n内容"  # Python 里 \n 就是换行
 ], capture_output=True, text=True)
 ```
 

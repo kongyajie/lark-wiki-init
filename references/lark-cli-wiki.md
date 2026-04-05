@@ -17,16 +17,32 @@ lark-cli auth login
 ```bash
 # 在知识库空间下创建根节点
 lark-cli docs +create \
-  --space "空间名称" \
+  --wiki-space "7620663498296642741" \
   --title "文档标题" \
-  --content "# 标题\n\n文档内容"
+  --markdown "# 标题\n\n文档内容"
 
-# 在已有节点下创建子节点
+# 在已有节点下创建子节点（--wiki-node 与 --wiki-space 互斥）
 lark-cli docs +create \
-  --space "空间名称" \
-  --parent-node "wikcnXXXXXX" \
+  --wiki-node "wikcnXXXXXX" \
   --title "子文档标题" \
-  --content "# 子标题\n\n子文档内容"
+  --markdown "# 子标题\n\n子文档内容"
+```
+
+注意：`--wiki-space` 和 `--wiki-node` 是互斥参数，不能同时使用。根节点用 `--wiki-space`，子节点用 `--wiki-node`。
+
+### 完整参数
+
+```
+Flags:
+      --as string             identity type: user | bot (default "user")
+      --dry-run               print request without executing
+      --folder-token string   parent folder token
+  -h, --help                  help for +create
+  -q, --jq string             jq expression to filter JSON output
+      --markdown string       Markdown content (Lark-flavored)
+      --title string          document title
+      --wiki-node string      wiki node token
+      --wiki-space string     wiki space ID (use my_library for personal library)
 ```
 
 ### 返回值
@@ -54,7 +70,7 @@ lark-cli wiki spaces
 ### 查看知识库节点
 
 ```bash
-lark-cli wiki nodes --space "空间名称"
+lark-cli wiki nodes --space "空间ID"
 ```
 
 ## 权限要求
@@ -72,7 +88,7 @@ lark-cli wiki nodes --space "空间名称"
 
 **错误方式**：
 ```bash
-lark-cli docs +create --content "# 标题\n\n内容"
+lark-cli docs +create --markdown "# 标题\n\n内容"
 # \n 可能被当作字面字符串
 ```
 
@@ -80,7 +96,7 @@ lark-cli docs +create --content "# 标题\n\n内容"
 ```python
 subprocess.run([
     "lark-cli", "docs", "+create",
-    "--content", "# 标题\n\n内容"  # Python 字符串中 \n 是真正的换行
+    "--markdown", "# 标题\n\n内容"  # Python 字符串中 \n 是真正的换行
 ], capture_output=True, text=True)
 ```
 
