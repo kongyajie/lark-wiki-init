@@ -289,7 +289,7 @@ git clone https://github.com/kongyajie/lark-wiki-init.git
 cd lark-wiki-init
 
 # 安装依赖
-pip install pyyaml
+pip install --user pyyaml  # macOS 用 --user 避免 externally-managed 报错
 npm install -g lark-cli
 lark-cli auth login
 

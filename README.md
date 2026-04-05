@@ -32,6 +32,12 @@ lark-cli auth login
 
 4. 安装 Python 依赖：
 ```bash
+# macOS (Homebrew Python)
+pip install --user pyyaml
+# 或使用 brew
+brew install libyaml
+
+# Linux / 其他
 pip install pyyaml
 ```
 

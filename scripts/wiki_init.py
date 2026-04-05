@@ -16,7 +16,13 @@ import subprocess
 import sys
 import time
 
-import yaml
+try:
+    import yaml
+except ImportError:
+    print("错误: 缺少 pyyaml 依赖，请安装:")
+    print("  pip install --user pyyaml")
+    print("  # 或: brew install libyaml && pip install --user pyyaml")
+    sys.exit(1)
 
 
 def load_config(path: str) -> dict:
